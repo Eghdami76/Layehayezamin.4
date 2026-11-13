@@ -1,0 +1,475 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حفاری به اعماق زمین -- درس چهارم علوم ششم</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Tahoma, sans-serif;
+    background: #0a0e1a; color: #eee;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 8px;
+  }
+  /* صفحه شروع */
+  #startScreen {
+    position: fixed; inset: 0;
+    background: linear-gradient(160deg, #0a0e1a, #16213e, #0f3460);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px; z-index: 1000; overflow-y: auto;
+  }
+  #startScreen.hidden { display: none; }
+  .start-content { max-width: 480px; width: 100%; text-align: center; }
+  .earth-illustration { width: 160px; height: 160px; margin: 0 auto 15px; display: block; }
+  .lesson-title { color: #4fc3f7; font-size: 1em; margin-bottom: 6px; }
+  .main-title { color: #ffd700; font-size: 1.6em; margin-bottom: 6px; }
+  .subtitle { color: #90caf9; font-size: 0.9em; margin-bottom: 15px; }
+  .designer-badge {
+    display: inline-block; background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.4);
+    padding: 6px 16px; border-radius: 20px;
+    color: #ffd700; font-size: 0.9em; margin-bottom: 15px;
+  }
+  .designer-badge strong { color: #fff; }
+  .tool-intro {
+    background: rgba(22,33,62,0.8); border: 1px solid #1a4a7a;
+    border-radius: 15px; padding: 14px; margin-bottom: 18px;
+    text-align: right; line-height: 1.8; font-size: 0.85em; color: #ccc;
+  }
+  .tool-intro h3 { color: #4ecca3; font-size: 1em; margin-bottom: 8px; text-align: center; }
+  .tool-intro ul { list-style: none; padding: 0; }
+  .tool-intro li { padding: 3px 0; padding-right: 20px; position: relative; }
+  .tool-intro li::before { content: '✦'; position: absolute; right: 0; color: #ffd700; }
+  .start-btn {
+    width: 100%; padding: 16px; font-size: 1.1em; font-weight: bold;
+    font-family: inherit; background: linear-gradient(180deg, #ffd700, #ffb300);
+    color: #003300; border: none; border-radius: 14px; cursor: pointer;
+    box-shadow: 0 5px 0 #b8860b;
+  }
+  .start-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #b8860b; }
+  
+  /* بازی */
+  #gameScreen { display: none; flex-direction: column; align-items: center; width: 100%; }
+  #gameScreen.show { display: flex; }
+  h1 { color: #ffd700; font-size: 1.1em; margin-bottom: 6px; text-align: center; }
+  .game-wrapper {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    width: 100%; max-width: 500px; align-items: start;
+  }
+  .drill-area {
+    position: relative; width: 100%; height: 340px;
+    background: #000; border-radius: 12px; overflow: hidden;
+    border: 2px solid #333;
+  }
+  .earth-layers-visual {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .layer-strip {
+    width: 100%; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6em; font-weight: bold; color: #fff;
+    text-shadow: 1px 1px 2px #000;
+    transition: all 0.4s ease; overflow: hidden;
+    opacity: 0.4; filter: grayscale(0.7) brightness(0.55);
+    border-bottom: 1px dashed rgba(255,255,255,0.2);
+  }
+  .layer-strip.active-layer {
+    opacity: 1; filter: none;
+    box-shadow: inset 0 0 25px rgba(255,255,255,0.6);
+    z-index: 5; border-bottom: 2px solid #fff;
+  }
+  #strip-litho  { height: 16%; background: #5d4037; }
+  #strip-astheno{ height: 12%; background: #bf360c; }
+  #strip-lower  { height: 26%; background: #8d6e63; }
+  #strip-outer  { height: 24%; background: #ff6f00; }
+  #strip-inner  { height: 22%; background: #ffd600; box-shadow: 0 0 20px #ffd600 inset; }
+  .drill-bit {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 38px; height: 52px; z-index: 10;
+    transition: top 0.5s;
+  }
+  .drill-bit svg { width: 100%; height: 100%; }
+  .drill-bit.drilling .drill-spin {
+    animation: spinDrill 0.3s linear infinite;
+    transform-origin: 50% 50%;
+  }
+  @keyframes spinDrill { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .particle {
+    position: absolute; width: 6px; height: 6px;
+    border-radius: 50%; pointer-events: none; z-index: 9;
+  }
+  .right-panel { display: flex; flex-direction: column; gap: 8px; }
+  .stats-row { display: flex; gap: 6px; }
+  .depth-display, .temp-display {
+    flex: 1; padding: 6px; border-radius: 8px; text-align: center;
+  }
+  .depth-display { background: #1a237e; border: 2px solid #3f51b5; }
+  .temp-display  { background: #4a148c; border: 2px solid #7b1fa2; }
+  .depth-value { font-size: 1.1em; color: #4fc3f7; font-weight: bold; }
+  .temp-value  { font-size: 1em; color: #ffab40; font-weight: bold; }
+  .depth-unit, .temp-unit { font-size: 0.6em; color: #aaa; }
+  .progress-bar {
+    width: 100%; height: 8px; background: #222;
+    border-radius: 4px; overflow: hidden; border: 1px solid #444;
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #4fc3f7, #ffab40, #ff5252);
+    transition: width 0.4s;
+  }
+  .drill-btn {
+    width: 100%; padding: 12px; font-size: 1em; font-weight: bold;
+    font-family: inherit; background: linear-gradient(180deg, #00c853, #00e676);
+    color: #003300; border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 3px 0 #00701a;
+  }
+  .drill-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #00701a; }
+  .drill-btn:disabled { background: #555; color: #888; box-shadow: 0 3px 0 #333; cursor: not-allowed; }
+  .reset-btn {
+    width: 100%; padding: 8px; font-family: inherit;
+    background: #37474f; color: #fff; border: none;
+    border-radius: 8px; cursor: pointer; font-size: 0.8em;
+  }
+  .bottom-info {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    width: 100%; max-width: 500px; margin-top: 10px;
+  }
+  .bottom-box {
+    background: #16213e; border-radius: 10px; padding: 12px;
+    border: 2px solid #0f3460; font-size: 0.9em; line-height: 1.8;
+    min-height: 100px;
+  }
+  .bottom-box.speech-box { border-right: 5px solid #4ecca3; background: #1a2a3a; }
+  .bottom-box.info-box { border-right: 5px solid #ffd700; }
+  .bottom-box h3 { font-size: 1em; margin-bottom: 6px; color: #ffd700; }
+  .bottom-box p { color: #ddd; }
+  .scientist-mini { font-size: 1.8em; display: inline-block; vertical-align: middle; }
+  .quiz-section {
+    margin-top: 12px; background: #1a1a2e; border-radius: 12px;
+    padding: 14px; max-width: 500px; width: 100%;
+    border: 2px solid #0f3460; display: none;
+  }
+  .quiz-section.show { display: block; }
+  .quiz-section h2 { color: #4ecca3; margin-bottom: 12px; text-align: center; font-size: 1em; }
+  .question { margin-bottom: 12px; }
+  .question p { margin-bottom: 6px; font-weight: bold; color: #ffd700; font-size: 0.85em; }
+  .option-btn {
+    display: block; width: 100%; padding: 8px 12px; margin-bottom: 6px;
+    background: #0f3460; color: #eee; border: 2px solid transparent;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+    text-align: right; font-size: 0.85em;
+  }
+  .option-btn.correct { background: #00c853; color: #003300; }
+  .option-btn.wrong { background: #c62828; color: #fff; }
+  .score { text-align: center; font-size: 1em; color: #ffd700; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<!-- صفحه شروع -->
+<div id="startScreen">
+  <div class="start-content">
+    <svg class="earth-illustration" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="18" fill="#ffd600"/>
+      <circle cx="100" cy="100" r="35" fill="none" stroke="#ff6f00" stroke-width="17"/>
+      <circle cx="100" cy="100" r="58" fill="none" stroke="#8d6e63" stroke-width="23"/>
+      <circle cx="100" cy="100" r="76" fill="none" stroke="#bf360c" stroke-width="13"/>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="#5d4037" stroke-width="11"/>
+    </svg>
+    <div class="lesson-title">📚 درس چهارم علوم ششم</div>
+    <div class="main-title">🌍 سفر به اعماق زمین</div>
+    <div class="subtitle">ابزار تعاملی آموزشی</div>
+    <div class="designer-badge">✨ طراح: <strong>سارا اقدامی مقدم</strong> ✨</div>
+    <div class="tool-intro">
+      <h3>🎮 این ابزار چه کاری انجام می‌دهد؟</h3>
+      <ul>
+        <li>با مته حفاری به اعماق زمین سفر می‌کنی</li>
+        <li>پنج لایه زمین را یکی‌یکی کشف می‌کنی</li>
+        <li>عمق و دمای هر لایه را می‌بینی</li>
+        <li>دکتر زمین‌شناس همراهت است و توضیح می‌دهد</li>
+        <li>در پایان، آزمون کوچکی از تو می‌گیرد</li>
+      </ul>
+    </div>
+    <button class="start-btn" onclick="startGame()">🚀 شروع سفر به اعماق زمین</button>
+  </div>
+</div>
+
+<!-- بازی -->
+<div id="gameScreen">
+  <h1>🕳️ حفاری به اعماق زمین</h1>
+  <div class="game-wrapper">
+    <div class="drill-area">
+      <div class="earth-layers-visual">
+        <div class="layer-strip" id="strip-litho">سنگ‌کره</div>
+        <div class="layer-strip" id="strip-astheno">خمیرکره</div>
+        <div class="layer-strip" id="strip-lower">گوشته زیرین</div>
+        <div class="layer-strip" id="strip-outer">هسته خارجی</div>
+        <div class="layer-strip" id="strip-inner">هسته داخلی</div>
+      </div>
+      <div class="drill-bit" id="drillBit">
+        <svg viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="0" width="24" height="10" rx="2" fill="#90a4ae"/>
+          <g class="drill-spin">
+            <rect x="15" y="10" width="10" height="28" fill="#b0bec5"/>
+            <path d="M 15 12 L 25 18 M 15 18 L 25 24 M 15 24 L 25 30 M 15 30 L 25 36" stroke="#546e7a" stroke-width="2.5" fill="none"/>
+            <path d="M 15 38 L 20 55 L 25 38 Z" fill="#90a4ae"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="stats-row">
+        <div class="depth-display">
+          <div class="depth-value" id="depthValue">0</div>
+          <div class="depth-unit">کیلومتر</div>
+        </div>
+        <div class="temp-display">
+          <div class="temp-value" id="tempValue">25</div>
+          <div class="temp-unit">درجه</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <button class="drill-btn" id="drillBtn" onclick="drill()">🔽 حفاری کن</button>
+      <button class="reset-btn" onclick="resetGame()">🔄 شروع مجدد</button>
+    </div>
+  </div>
+  <div class="bottom-info">
+    <div class="bottom-box speech-box">
+      <h3>🧑‍🔬 دکتر زمین‌شناس <span class="scientist-mini" id="scientistMini">🧑‍🔬</span></h3>
+      <p id="speech">سلام! دکمه حفاری رو بزن تا از سطح زمین به عمق بریم!</p>
+    </div>
+    <div class="bottom-box info-box">
+      <h3>📌 اطلاعات لایه</h3>
+      <p id="infoText">هنوز حفاری شروع نشده!</p>
+    </div>
+  </div>
+  <div class="quiz-section" id="quizSection">
+    <h2>🎯 آزمون نهایی</h2>
+    <div id="quizContent"></div>
+    <div class="score" id="scoreDisplay"></div>
+  </div>
+</div>
+
+<script>
+// ===== داده‌ها =====
+var layers = [
+  { id: 'litho', name: 'سنگ‌کره', maxDepth: 100, stripId: 'strip-litho', emoji: '⛏️',
+    info: 'سنگ‌کره لایه جامد بیرونی زمین است. ما روی آن زندگی می‌کنیم.',
+    events: ['این لایه جامد است و ما روی آن زندگی می‌کنیم! 🏠', 'اینجا معادن و ذخایر زمین قرار دارند. ⛏️'] },
+  { id: 'astheno', name: 'خمیرکره', maxDepth: 350, stripId: 'strip-astheno', emoji: '🌋',
+    info: 'خمیرکره حالت خمیری دارد و منشأ زمین‌لرزه‌ها و آتشفشان‌هاست!',
+    events: ['⚠️ اینجا خمیرکره است! زمین‌لرزه‌ها از اینجا شروع می‌شوند!', '🌋 منشأ آتشفشان‌ها اینجاست!'] },
+  { id: 'lower', name: 'گوشته زیرین', maxDepth: 2900, stripId: 'strip-lower', emoji: '🔥',
+    info: 'گوشته زیرین جامد است و ضخامت بسیار زیادی دارد.',
+    events: ['💎 این لایه جامد است اما فشار زیادی دارد!', '🌡️ دمای اینجا خیلی بالاست!'] },
+  { id: 'outer', name: 'هسته خارجی', maxDepth: 5100, stripId: 'strip-outer', emoji: '🧲',
+    info: 'هسته خارجی از فلزات مذاب است و میدان مغناطیسی زمین را می‌سازد!',
+    events: ['🧲 فلزات مذاب اینجا میدان مغناطیسی می‌سازند!', '⚡ جنس این لایه آهن و نیکل مذاب است!'] },
+  { id: 'inner', name: 'هسته داخلی', maxDepth: 6371, stripId: 'strip-inner', emoji: '🏆',
+    info: 'هسته داخلی با وجود گرما، به خاطر فشار زیاد جامد است!',
+    events: ['🏆 به مرکز زمین رسیدی!', '✨ اینجا قلب زمین است!'] }
+];
+
+var TOTAL_DEPTH = 6371;
+var currentDepth = 0, gameFinished = false, discoveredLayers = {};
+
+// ===== شروع =====
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameScreen').classList.add('show');
+  window.scrollTo(0, 0);
+}
+
+// ===== توابع =====
+function getTempAtDepth(d) {
+  if (d <= 100) return 25 + d * 0.3;
+  if (d <= 350) return 55 + (d - 100) * 2;
+  if (d <= 2900) return 705 + (d - 350) * 1.2;
+  if (d <= 5100) return 3115 + (d - 2900) * 0.6;
+  return 4435 + (d - 5100) * 0.5;
+}
+
+function getLayerIndex(d) {
+  for (var i = 0; i < layers.length; i++) {
+    if (d <= layers[i].maxDepth) return i;
+  }
+  return layers.length - 1;
+}
+
+function getDrillTop(d) {
+  var heights = [16, 12, 26, 24, 22];
+  var acc = 0;
+  for (var i = 0; i < layers.length; i++) {
+    if (d <= layers[i].maxDepth) {
+      var prev = i === 0 ? 0 : layers[i-1].maxDepth;
+      var ratio = (d - prev) / (layers[i].maxDepth - prev);
+      return acc + ratio * heights[i];
+    }
+    acc += heights[i];
+  }
+  return 100;
+}
+
+function updateActive(idx) {
+  for (var i = 0; i < layers.length; i++) {
+    var el = document.getElementById(layers[i].stripId);
+    if (i === idx) el.classList.add('active-layer');
+    else el.classList.remove('active-layer');
+  }
+}
+
+function drill() {
+  if (gameFinished) return;
+  var bit = document.getElementById('drillBit');
+  bit.classList.add('drilling');
+  createParticles();
+  
+  var step = TOTAL_DEPTH / 18;
+  currentDepth = Math.min(TOTAL_DEPTH, currentDepth + step + Math.random() * 40);
+  
+  document.getElementById('depthValue').textContent = Math.round(currentDepth).toLocaleString('fa-IR');
+  document.getElementById('tempValue').textContent = Math.round(getTempAtDepth(currentDepth)).toLocaleString('fa-IR');
+  document.getElementById('progressFill').style.width = (currentDepth / TOTAL_DEPTH * 100) + '%';
+  bit.style.top = getDrillTop(currentDepth) + '%';
+  
+  var idx = getLayerIndex(currentDepth);
+  var layer = layers[idx];
+  updateActive(idx);
+  
+  if (!discoveredLayers[layer.id]) {
+    discoveredLayers[layer.id] = true;
+    document.getElementById('scientistMini').textContent = layer.emoji;
+    document.getElementById('speech').innerHTML = '<strong style="color:#4ecca3">🎉 کشف: ' + layer.name + '!</strong> ' + layer.info;
+    document.getElementById('infoText').innerHTML = '<strong>' + layer.name + '</strong><br>عمق: ' + Math.round(currentDepth).toLocaleString('fa-IR') + ' کیلومتر<br>دما: ' + Math.round(getTempAtDepth(currentDepth)).toLocaleString('fa-IR') + '°C';
+  } else {
+    var ev = layer.events[Math.floor(Math.random() * layer.events.length)];
+    document.getElementById('speech').textContent = ev;
+    document.getElementById('scientistMini').textContent = layer.emoji;
+  }
+  
+  if (currentDepth >= TOTAL_DEPTH) finishGame();
+  setTimeout(function() { bit.classList.remove('drilling'); }, 500);
+}
+
+function createParticles() {
+  var area = document.querySelector('.drill-area');
+  var bit = document.getElementById('drillBit');
+  var top = parseFloat(bit.style.top) || 0;
+  for (var i = 0; i < 5; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (40 + Math.random() * 20) + '%';
+    p.style.top = (top + 3) + '%';
+    p.style.background = ['#ffb300', '#ff5722', '#ffd600'][Math.floor(Math.random()*3)];
+    area.appendChild(p);
+    var dx = (Math.random() - 0.5) * 70;
+    var dy = 25 + Math.random() * 40;
+    if (p.animate) {
+      p.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0)', opacity: 0 }
+      ], { duration: 600, easing: 'ease-out' }).onfinish = function() { p.remove(); };
+    } else {
+      setTimeout(function() { p.remove(); }, 600);
+    }
+  }
+}
+
+function finishGame() {
+  gameFinished = true;
+  var btn = document.getElementById('drillBtn');
+  btn.disabled = true;
+  btn.textContent = '✅ به مرکز زمین رسیدی!';
+  updateActive(layers.length - 1);
+  setTimeout(function() {
+    document.getElementById('speech').innerHTML = '🏆 <strong>آفرین! به مرکز زمین رسیدی!</strong>';
+    document.getElementById('scientistMini').textContent = '🎓';
+    showQuiz();
+  }, 800);
+}
+
+// ===== کوییز =====
+var quizQuestions = [
+  { q: 'کدام لایه حالت خمیری دارد و منشأ زمین‌لرزه‌هاست؟',
+    options: ['سنگ‌کره', 'خمیرکره', 'هسته خارجی', 'هسته داخلی'], correct: 1 },
+  { q: 'کدام لایه میدان مغناطیسی زمین را می‌سازد؟',
+    options: ['سنگ‌کره', 'گوشته زیرین', 'هسته خارجی', 'هسته داخلی'], correct: 2 },
+  { q: 'چرا هسته داخلی با وجود گرما جامد است؟',
+    options: ['چون سرد است', 'به خاطر فشار زیاد', 'چون از یخ است', 'چون کوچک است'], correct: 1 },
+  { q: 'ما روی کدام لایه زندگی می‌کنیم؟',
+    options: ['خمیرکره', 'سنگ‌کره', 'هسته خارجی', 'گوشته زیرین'], correct: 1 }
+];
+
+var quizAnswers = 0, quizCorrect = 0;
+
+function showQuiz() {
+  var section = document.getElementById('quizSection');
+  section.classList.add('show');
+  var content = document.getElementById('quizContent');
+  content.innerHTML = '';
+  quizAnswers = 0; quizCorrect = 0;
+  
+  quizQuestions.forEach(function(item, qIndex) {
+    var div = document.createElement('div');
+    div.className = 'question';
+    var p = document.createElement('p');
+    p.textContent = (qIndex + 1) + '. ' + item.q;
+    div.appendChild(p);
+    
+    item.options.forEach(function(opt, oIndex) {
+      var btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.onclick = function() {
+        var allBtns = div.querySelectorAll('.option-btn');
+        for (var k = 0; k < allBtns.length; k++) allBtns[k].disabled = true;
+        if (oIndex === item.correct) { btn.classList.add('correct'); quizCorrect++; }
+        else { btn.classList.add('wrong'); allBtns[item.correct].classList.add('correct'); }
+        quizAnswers++;
+        updateScore();
+      };
+      div.appendChild(btn);
+    });
+    content.appendChild(div);
+  });
+  section.scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateScore() {
+  var el = document.getElementById('scoreDisplay');
+  if (quizAnswers === quizQuestions.length) {
+    var percent = Math.round(quizCorrect / quizQuestions.length * 100);
+    el.innerHTML = 'امتیاز: ' + quizCorrect + ' از ' + quizQuestions.length + ' (' + percent + '%)';
+  } else {
+    el.textContent = 'پاسخ داده: ' + quizAnswers + ' از ' + quizQuestions.length;
+  }
+}
+
+function resetGame() {
+  currentDepth = 0; gameFinished = false; discoveredLayers = {};
+  document.getElementById('depthValue').textContent = '0';
+  document.getElementById('tempValue').textContent = '25';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('drillBit').style.top = '0%';
+  document.getElementById('drillBtn').disabled = false;
+  document.getElementById('drillBtn').textContent = '🔽 حفاری کن';
+  for (var i = 0; i < layers.length; i++) {
+    document.getElementById(layers[i].stripId).classList.remove('active-layer');
+  }
+  document.getElementById('scientistMini').textContent = '🧑‍🔬';
+  document.getElementById('speech').textContent = 'دوباره آماده‌ایم! دکمه حفاری رو بزن!';
+  document.getElementById('infoText').textContent = 'هنوز حفاری شروع نشده!';
+  document.getElementById('quizSection').classList.remove('show');
+  document.getElementById('scoreDisplay').textContent = '';
+  document.getElementById('quizContent').innerHTML = '';
+}
+
+// ===== آماده‌سازی اولیه =====
+document.getElementById('drillBit').style.top = '0%';
+updateActive(0);
+</script>
+</body>
+</html>
